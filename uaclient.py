@@ -7,41 +7,75 @@ import socket
 import sys
 # Constantes. Dirección IP del servidor,Puerto del servidor y
 # Linea
-try:
-    METODO = sys.argv[1].upper()
-    # restringimos el metodo
-    if METODO != 'INVITE' and METODO != 'BYE':
-        print()
-        sys.exit("Method must be INVITE or BYE")
-    LOGIN_IP = sys.argv[2].split(':')[0]  # login@ip (me estoy quedando con
-    # todo junto)
-    IPSERVER = LOGIN_IP.split('@')[1]  # la necesito para concetarme solamente
-    PORTSERVER = int(sys.argv[2].split(':')[1])
 
-except ValueError:
-    sys.exit("Usage: python3 client.py method receiver@IP:SIPport")
-except IndexError:
-    sys.exit("Usage: python3 client.py method receiver@IP:SIPport")
+class UaHandler(ContentHandler):
+    """Class Handler."""
 
-# Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
-with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
-    my_socket.connect((IPSERVER, PORTSERVER))
-    print("Enviando:", METODO + ' sip:' + LOGIN_IP + ' SIP/2.0')
-    # Se lo enviamos al servidor
-    my_socket.send(bytes(METODO + ' sip:' + LOGIN_IP + ' SIP/2.0\r\n',
-                         'utf-8') + b'\r\n\r\n')
+    def __init__(self):
+        """Inicializa los diccionarios."""
+        self.diccionario = {}
+        self.dicc_uaxml = {'account': ['username', 'passwd'],
+                            'uaserver': ['ip', 'puerto'],
+                            'rtpaudio': ['puerto'],
+                            'regproxy': ['ip', 'puerto'],
+                            'log': ['path'], 'audio': ['path']}
+
+    def startElement(self, name, attrs):
+        """Crea el diccionario con los valores del fichero xml."""
+        if name in self.dicc_uaxml:
+            for atributo in self.dicc_uaxml[name]:
+                self.diccionario[name+'_'+atributo] = attrs.get(atributo, '')
+
+    def get_tags(self):
+        """Devuelve el diccionario."""
+        return self.diccionario
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 4:
+        sys.exit("Usage: python uaclient.py config method option")
     try:
-        data = my_socket.recv(1024)
-    except ConnectionRefusedError:
-        sys.exit("No se ha podido conectar con el servidor")
-    recibido = data.decode('utf-8').split()
-    print('Recibido -- ', data.decode('utf-8'))
+        CONFIG = sys.argv[1]
+        METHOD = sys.argv[2].upper()
+        if METHOD != 'INVITE' and METHOD != 'BYE' and METHOD != 'REGISTER':
+            print()
+            sys.exit("Method must be REGISTER, INVITE or BYE")
+        OPTION = sys.argv[3]
+    except IndexError:
+        sys.exit("Usage: python uaclient.py config method option")
+    print("funciona")
+    parser = make_parser()
+    ClientHandler = UaHandler()
+    parser.setContentHandler(UaHandler)
+    try:
+        parser.parse(open(CONFIG))
+    except FileNotFoundError:
+        sys.exit("Usage: python proxy_registrar.py config")
 
-    if METODO == 'INVITE':
-        if (recibido[2] == 'TRYING' and recibido[5] == "RINGING"
-                and recibido[8] == "OK"):
-                    my_socket.send(bytes('ACK sip:' + LOGIN_IP + ' SIP/2.0',
-                                         'utf-8') + b'\r\n\r\n')
-    if METODO == 'BYE':
-        if data.decode('utf-8') == "SIP/2.0 200 OK\r\n\r\n":
-            print("Terminando socket...")
+    DICC_CONFIG = uHandler.get_tags()
+    # COmprobamos si el xml leido nos da la ip del proxy, sino la asignamos
+    if DICC_CONFIG['regproxy_ip'] == '':
+        IP_PROXY = '127.0.0.1'
+    else:
+        IP_PROXY = DICC_CONFIG['regproxy_ip']
+    # Guardamos los datos leidos en "constantes"
+    PORT_PROXY = int(DICC_CONFIG['regproxy_puerto'])
+    LOG_PATH = DICC_CONFIG['log_path']
+    ADRESS = DICC_CONFIG['account_username']
+    PUERTO = DICC_CONFIG['uaserver_puerto']
+    PASSWD = DICC_CONFIG['account_passwd']
+    if DICC_CONFIG['uaserver_ip'] == '':
+        IP = '127.0.0.1'
+    else:
+        IP = DICC_CONFIG['uaserver_ip']
+    PORT_AUDIO = int(DICC_CONFIG['rtpaudio_puerto'])
+    AUDIO_PATH = DICC_CONFIG['audio_path']
+    # Creamos el socket, lo configuramos y lo atamos a un servidor/puerto.
+    log("Starting...", LOG_PATH)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
+        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        my_socket.connect((IP_PROXY, PORT_PROXY))
+
+        
+    except ValueError:
+        sys.exit("Tengo que poner el error de archivo no encontrado")
