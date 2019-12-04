@@ -8,41 +8,20 @@ import sys
 import time
 import json
 import os
+from xml.sax import make_parser
+from xml.sax.handler import ContentHandler
 
-
-class SIPRegisterHandler(socketserver.DatagramRequestHandler):
+class HandlerServer(socketserver.DatagramRequestHandler):
     """
-    Echo server class
+    Handler
     """
 
-    def handle(self):
-        """
-        handle method of the server class
-        (all requests will be handled by this method)
-        """
-
-        milinea = ''
-        for line in self.rfile:
-            milinea += line.decode('utf-8')
-        if milinea != '\r\n':
-            (peticion, sipLOGIN_ip, port) = milinea.split()
-            if peticion == 'INVITE':
-                self.wfile.write(b"SIP/2.0 100 TRYING\r\n\r\n"
-                                 + b"SIP/2.0 180 RINGING\r\n\r\n"
-                                 + b"SIP/2.0 200 OK\r\n\r\n")
-            elif peticion == 'ACK':
-                # aEjecutar es un string
-                # con lo que se ha de ejecutar en la shell
-                aEjecutar = 'mp32rtp -i 127.0.0.1 -p 23032 < ' + AUDIO
-                print("Se ejecuta: ", aEjecutar)
-                os.system(aEjecutar)
-            elif peticion == 'BYE':
-                self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-            elif peticion != ('INVITE', 'ACK', 'BYE'):
-                self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
-            else:
-                # nunca deberia llegar a aqui si se usa mi cliente
-                self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+def log(mensaje, log_path):
+    """Abre un fichero log para poder escribir en el."""
+    fich = open(log_path, "a")
+    fich.write(time.strftime('%Y%m%d%H%M%S '))
+    fich.write(mensaje+"\r\n")
+    fich.close()
 
 
 if __name__ == "__main__":
