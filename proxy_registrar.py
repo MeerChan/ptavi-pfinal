@@ -31,23 +31,34 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     """
     Echo server class
     """
-    dicc = {}
+    dicc_reg = {}
+    dicc_passw = {}
 
     def json2register(self):
         """Paso el json a mi diccionario REGISTER"""
         try:
-            with open(REGISTRO, 'r') as jsonfile:
+            with open(REGISTERS, 'r') as jsonfile:
                 self.dicc_reg = json.load(jsonfile)
         except FileNotFoundError:
-            sys.exit("Config: File not found")
+            pass
+
+    def json2password(self):
+        """Descargo fichero json en el diccionario."""
+        try:
+            with open(PASSWORDS, 'r') as jsonfile:
+                self.dicc_passw = json.load(jsonfile)
+        except FileNotFoundError:
+            pass
 
     def register2json(self):
         """
-        escribo la variable dicc
-        en formato json en elfichero registered.json
+        Escribir diccionario.
+        En formato json en el fichero que nos dice el xml
         """
-        with open('registered.json', 'w') as jsonfile:
-            json.dump(self.dicc, jsonfile, indent=4)
+        with open(REGISTERS, 'w') as jsonfile:
+            json.dump(self.dicc_reg, jsonfile, indent=4)
+
+
 
     def handle(self):
         """
@@ -89,20 +100,35 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
 
 
 if __name__ == "__main__":
-    # Listens at localhost ('') port 6001
-    # and calls the EchoHandler class to manage the request
-    if len(sys.argv) != 2:
-        sys.exit("Usage: server.py port")
     try:
-        PORTSERVER = int(sys.argv[1])
-    except ValueError:
-        sys.exit("Port must be a number")
-    except IndexError:
-        sys.exit("Usage: server.py port")
-    serv = socketserver.UDPServer(('', PORTSERVER), SIPRegisterHandler)
+        CONFIG = sys.argv[1]
+    except (IndexError, ValueError):
+        sys.exit("Usage: python proxy_registrar.py config")
 
-    print("Lanzando servidor UDP de eco...")
+    parser = make_parser()
+    pHandler = PrHandler()
+    parser.setContentHandler(pHandler)
+    try:
+        parser.parse(open(CONFIG))
+    except FileNotFoundError:
+        sys.exit("Usage: python proxy_registrar.py config")
+    CONFIGURACION = pHandler.get_tags()
+
+    if CONFIGURACION['server_ip'] == '':
+        IP = '127.0.0.1'
+    else:
+        IP = CONFIGURACION['server_ip']
+        
+    PORT_SERVER = int(CONFIGURACION['server_puerto'])
+    PROXY = CONFIGURACION['server_name']
+    LOG_PATH = CONFIGURACION['log_path']
+    REGISTERS = CONFIGURACION['database_path']
+    PASSWORDS = CONFIGURACION['database_passwdpath']
+
+    serv = socketserver.UDPServer((IP, PORT_SERVER), SIPRegisterHandler)
+    print("Server " + PROXY + " listening at port " + str(PORT_SERVER))
+    log("Starting...", LOG_PATH)
     try:
         serv.serve_forever()
     except KeyboardInterrupt:
-        print("Finalizado servidor")
+        log("Finishing.", LOG_PATH)
