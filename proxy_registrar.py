@@ -1,12 +1,30 @@
 #!/usr/bin/python3
-"""
-Clase (y programa principal) para un servidor de eco en UDP simple
-"""
 
 import socketserver
 import sys
 import time
 import json
+
+class PrHandler(ContentHandler):
+    """Class Handler."""
+
+    def __init__(self):
+        """Inicializo los diccionarios"""
+        self.diccionario = {}
+        self.dicc_prxml = {'server': ['name', 'ip', 'puerto'],
+                            'database': ['path', 'passwdpath'],
+                            'log': ['path']}
+
+    def startElement(self, name, attrs):
+        """Crea el diccionario con los valores del fichero xml."""
+        diccionario = {}
+        if name in self.dicc_prxml:
+            for atributo in self.dicc_prxml[name]:
+                self.diccionario[name+'_'+atributo] = attrs.get(atributo, '')
+
+    def get_tags(self):
+        """Devuelve el diccionario creado."""
+        return self.diccionario
 
 
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
@@ -16,13 +34,12 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     dicc = {}
 
     def json2register(self):
-        """Descargo fichero json en el diccionario."""
+        """Paso el json a mi diccionario REGISTER"""
         try:
-            with open('registered.json', 'r') as jsonfile:
-                self.dicc = json.load(jsonfile)
-        # Me da igual cual sea la excepcion (error) sigo
-        except():
-            pass
+            with open(REGISTRO, 'r') as jsonfile:
+                self.dicc_reg = json.load(jsonfile)
+        except FileNotFoundError:
+            sys.exit("Config: File not found")
 
     def register2json(self):
         """
