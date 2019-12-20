@@ -2,8 +2,14 @@
 
 import socketserver
 import sys
+from xml.sax import make_parser
+from xml.sax.handler import ContentHandler
+import socket
 import time
 import json
+from uaserver import log
+from uaclient import password
+import random
 
 class PrHandler(ContentHandler):
     """Class Handler."""
@@ -33,6 +39,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
     """
     dicc_reg = {}
     dicc_passw = {}
+    nonce = {}
 
     def json2register(self):
         """Paso el json a mi diccionario REGISTER"""
@@ -58,46 +65,131 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         with open(REGISTERS, 'w') as jsonfile:
             json.dump(self.dicc_reg, jsonfile, indent=4)
 
+    def enviar_cliente(self, ip, port, linea):
+        """Envio mensajes al uaclient."""
+        self.wfile.write(bytes(linea, 'utf-8'))
+        print('mandamos al cliente: ', linea)
+        linea_buena = linea.replace("\r\n", " ")
+        log('Sent to ' + ip + ':' + str(port) + ': ' + linea_buena, LOG_PATH)
 
+    def enviar_server(self, ip, port, mensaje):
+        """Envio los mensajes al uaserver."""
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
+            my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            my_socket.connect((ip, port))
+
+            mensaje_split = mensaje.split('\r\n\r\n')
+            mens_proxy = (mensaje_split[luego] + '\r\nVia: SIP/2.0/UDP ' + IP + ':' +
+                          str(PORT_SERVER) + '\r\n\r\n' + mensaje_split[luego])
+            print('mandamos al servidor: ', mens_proxy)
+            my_socket.send(bytes(mens_proxy, 'utf-8'))
+            mens_proxy = mens_proxy.replace("\r\n", " ")
+            log('Sent to ' + ip + ':' + str(port) + ': ' +
+                mens_proxy, LOG_PATH)
+
+            try:
+                data = my_socket.recv(1024).decode('utf-8')
+                print('recibimos del servidor: ', data)
+            except ConnectionRefusedError:
+                log("Error: No server listening at " + ip +
+                    " port " + str(port), LOG_PATH)
+            RECB = data.split()
+            env_proxy = ''
+            try:
+                if RECB[7] == '200':
+                    recb_proxy = data.split('\r\n\r\n')
+                    env_proxy = (recb_proxy[0] + '\r\n\r\n' + recb_proxy[1] +
+                                 '\r\n\r\n' + recb_proxy[2] +
+                                 '\r\nVia: SIP/2.0/UDP ' + IP + ':' +
+                                 str(PORT_SERVER) + '\r\n\r\n' + recb_proxy[3])
+            except IndexError:
+                env_proxy = data
+            if env_proxy != '':
+                log_send = env_proxy.replace("\r\n", " ")
+                log('Received from ' + ip + ':' +
+                    str(port) + ': ' + log_send, LOG_PATH)
+                self.enviar_cliente(ip, port, env_proxy)
+    def user_not_found(self):
+        """Mensaje de usuario no encontrado."""
+        linea_send = 'SIP/2.0 404 User Not Found\r\n\r\n'
+        log_send = linea_send.replace("\r\n", " ")
+        log('Error: ' + log_send, LOG_PATH)
+        self.wfile.write(bytes(linea_send, 'utf-8'))
 
     def handle(self):
-        """
-        handle method of the server class
-        (all requests will be handled by this method)
-        """
-        # COmpruebo si ya esta creado el json
-        self.json2register()
-        self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+        """Escribe dirección y puerto del cliente."""
+        ip_client = str(self.client_address[0])
+        port_client = str(self.client_address[1])
         milinea = ''
         for line in self.rfile:
             milinea += line.decode('utf-8')
-        if milinea != '\r\n':
-            print("El cliente nos manda ", milinea)
-            # Quitamosos el expires: que no usamos con _
-            (peticion, address, sip, _, expire) = milinea.split()
-            if peticion == 'REGISTER':
-                IP = self.client_address[0]
-                # quito el sip, quedandome con el segundo obejeto del split
-                user = address.split(':')[1]
-                # Timpo en el que caducaria la sesion (actual+expires)
-                Tiempo = time.time() + int(expire)
-                # convierto el tiempo a horas min segundos
-                TiempoHMS = time.strftime('%Y-%m-%d %H:%M:%S',
-                                          time.gmtime(Tiempo))
-                # tiempo actual
-                Ahora = time.strftime('%Y-%m-%d %H:%M:%S',
-                                      time.gmtime(time.time()))
-                self.dicc[user] = {'address': IP, 'expires': TiempoHMS}
-                userBorrados = []
-                for user in self.dicc:
-                    if Ahora >= self.dicc[user]['expires']:
-                        userBorrados.append(user)
-                # COmo no podemos modificar el tamaño del diccionario mientras
-                # lo recorremos necesitamos hacer esto
-                for user in userBorrados:
-                    del self.dicc[user]
-                self.register2json()
+            linea_buena = linea.replace("\r\n", " ")
+            log('Received from ' + IP_PROXY + ':' +
+                str(PORT_PROXY) + ': ' + linea_buena, LOG_PATH)
+            print("El cliente nos manda ", linea)
 
+            milinea_split = milinea.split()
+        if milinea_split[0] == 'REGISTER' and len(milinea_split) == 5:
+            #Si la longuitud es 5, primer register
+            TimeExp = time.time() + int(milinea_split[4])
+            now = time.time()
+            user = milinea_split[1].split(':')[1]
+            port = milinea_split[1].split(':')[2]
+            linea_recb = milinea.replace("\r\n", " ")
+            log('Received from ' + ip_client + ':' +
+                port_client + ': ' + linea_recb, LOG_PATH)
+            if user in self.dicc_passw.keys():
+                if user in self.dicc_reg.keys():
+                    if milinea_split[4] == '0':
+                        #si el expires es 0 lo borro
+                        del self.dicc_reg[user]
+                        linea_send = "SIP/2.0 200 OK\r\n\r\n"
+                    else:
+                        #es raro que llegue aqui
+                        self.dicc_reg[user] = {'ip': ip_client,
+                                               'expires': TimeExp,
+                                               'puerto': port,
+                                               'registro': now}
+                        linea_send = "SIP/2.0 200 OK\r\n\r\n"
+                else:
+                    #como es el primer register, le mando el nonce
+                    self.nonce[user] = str(random.randint(0, 100000000))
+                    linea_send = ('SIP/2.0 401 Unauthorized\r\n' +
+                                  'WWW Authenticate: Digest ' +
+                                  'nonce="' + self.nonce[user] +
+                                  '""\r\n\r\n')
+                self.envio_cliente(ip_client, port_client, linea_send)
+            else:
+                self.user_not_found()
+        elif milinea_split[0] == 'REGISTER' and len(milinea_split) == 8:
+            TimeExp = time.time() + int(milinea_split[4])
+            now = time.time()
+            user = milinea_split[1].split(':')[1]
+            port = milinea_split[1].split(':')[2]
+            linea_recb = linea.replace("\r\n", " ")
+            log('Received from ' + ip_client + ':' +
+                port_client + ': ' + linea_recb, LOG_PATH)
+            passw = self.dicc_passw[user]['passwd']
+            nonce = password(passw, self.nonce[user])
+            nonce_recv = milinea_split[7].split('"')[1]
+            #si el nonce es bueno lo regisstro
+            if nonce == nonce_recv:
+                if milinea_split[4] == '0':
+                    del self.dicc_reg[user]
+                    linea_send = "SIP/2.0 200 OK\r\n\r\n"
+                else:
+                    self.dicc_reg[user] = {'ip': ip_client,
+                                           'expires': TimeExp,
+                                           'puerto': port,
+                                           'registro': now}
+                    linea_send = "SIP/2.0 200 OK\r\n\r\n"
+            else:
+                self.nonce[user] = str(random.randint(0, 100000000))
+                linea_send = ('SIP/2.0 401 Unauthorized\r\n' +
+                              'WWW Authenticate: Digest ' +
+                              'nonce="' + self.nonce[user] +
+                              '"\r\n\r\n')
+            self.envio_cliente(ip_client, port_client, linea_send)
 
 if __name__ == "__main__":
     try:
@@ -118,7 +210,7 @@ if __name__ == "__main__":
         IP = '127.0.0.1'
     else:
         IP = CONFIGURACION['server_ip']
-        
+
     PORT_SERVER = int(CONFIGURACION['server_puerto'])
     PROXY = CONFIGURACION['server_name']
     LOG_PATH = CONFIGURACION['log_path']

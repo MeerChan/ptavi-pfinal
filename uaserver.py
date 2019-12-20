@@ -46,42 +46,42 @@ class HandlerServer(socketserver.DatagramRequestHandler):
 
         milinea = ''
         for line in self.rfile:
-            milinea = line.decode('utf-8')
+            milinea += line.decode('utf-8')
             linea_buena = milinea.replace("\r\n", " ")
             log('Received from ' + IP_PROXY + ':' +
                 str(PORT_PROXY) + ': ' + linea_buena, LOG_PATH)
             print("El cliente nos manda ", milinea)
 
             line = milinea.split()
-            if line[0] == 'INVITE':
-                print(line)
-                #Guardo la ip y el puerto donde enviare el audio
-                self.rtp.append(line[mirarposicion])
-                self.rtp.append(line[mirarposicion])
-                mensaje = ('SIP/2.0 100 Trying\r\n\r\n' +
-                           'SIP/2.0 180 Ringing\r\n\r\n' +
-                           'SIP/2.0 200 OK\r\n' +
-                           'Content-Type: application/sdp\r\n\r\n' +
-                           'v=0\r\n' + 'o=' + ADRESS + ' ' + IP + '\r\n' +
-                           's=misesion\r\n' + 'm=audio ' + str(PORT_AUDIO) +
-                           ' RTP' + '\r\n\r\n')
-                self.enviar_proxy(mensaje, Client_IP, Client_PORT)
-            elif line[0] == 'ACK':
-                mensaje = rtp(self.rtp[0], self.rtp[1], AUDIO_PATH)
-                log()
-            elif line[0] == 'BYE':
-                mensaje = 'SIP/2.0 200 OK\r\n\r\n'
-                self.enviar_proxy(mensaje, Client_IP, Client_PORT)
-            elif line[0] != ('INVITE', 'ACK', 'BYE'):
-                mensaje = 'SIP/2.0 405 Method Not Allowed\r\n\r\n'
-                self.enviar_proxy(mensaje, Client_IP, Client_PORT)
-                log("Error: SIP/2.0 405 Method Not Allowed", LOG_PATH)
-                print('El metodo esta mal escrito')
-            else:
-                mensaje = 'SIP/2.0 405 Method Not Allowed\r\n\r\n'
-                self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
-                log("Error: SIP/2.0 400 Bad Request", LOG_PATH)
-                print('No deberia llegar aqui, saltaria el error anterior ')
+        if line[0] == 'INVITE':
+            print(line)
+            #Guardo la ip y el puerto donde enviare el audio
+            self.rtp.append(line[mirarposicion])
+            self.rtp.append(line[mirarposicion])
+            mensaje = ('SIP/2.0 100 Trying\r\n\r\n' +
+                       'SIP/2.0 180 Ringing\r\n\r\n' +
+                       'SIP/2.0 200 OK\r\n' +
+                       'Content-Type: application/sdp\r\n\r\n' +
+                       'v=0\r\n' + 'o=' + ADRESS + ' ' + IP + '\r\n' +
+                       's=misesion\r\n' + 'm=audio ' + str(PORT_AUDIO) +
+                       ' RTP' + '\r\n\r\n')
+            self.enviar_proxy(mensaje, Client_IP, Client_PORT)
+        elif line[0] == 'ACK':
+            mensaje = rtp(self.rtp[0], self.rtp[1], AUDIO_PATH)
+            log()
+        elif line[0] == 'BYE':
+            mensaje = 'SIP/2.0 200 OK\r\n\r\n'
+            self.enviar_proxy(mensaje, Client_IP, Client_PORT)
+        elif line[0] != ('INVITE', 'ACK', 'BYE'):
+            mensaje = 'SIP/2.0 405 Method Not Allowed\r\n\r\n'
+            self.enviar_proxy(mensaje, Client_IP, Client_PORT)
+            log("Error: SIP/2.0 405 Method Not Allowed", LOG_PATH)
+            print('El metodo esta mal escrito')
+        else:
+            mensaje = 'SIP/2.0 405 Method Not Allowed\r\n\r\n'
+            self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+            log("Error: SIP/2.0 400 Bad Request", LOG_PATH)
+            print('No deberia llegar aqui, saltaria el error anterior ')
 
 if __name__ == "__main__":
     try:

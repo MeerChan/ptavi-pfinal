@@ -137,8 +137,8 @@ if __name__ == "__main__":
                 MENS, LOG_PATH)
         elif (RECV_SPLIT[1] == '100' and RECV_SPLIT[4] == '180' and
               RECV_SPLIT[7] == '200'):
-            SERVER_IP = RECV_SPLIT[16]
-            PORT_RTP = RECV_SPLIT[19]
+            SERVER_IP = RECV_SPLIT[MIRAR]
+            PORT_RTP = RECV_SPLIT[mirar]
             LINEA = 'ACK sip:' + OPTION + ' SIP/2.0\r\n\r\n'
             my_socket.send(bytes(LINEA, 'utf-8'))
             print('Enviamos al Proxy:\r\n', LINEA)
