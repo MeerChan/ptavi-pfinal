@@ -190,7 +190,52 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                               'nonce="' + self.nonce[user] +
                               '"\r\n\r\n')
             self.envio_cliente(ip_client, port_client, linea_send)
-
+        elif milinea_split[0] == 'INVITE':
+            linea_recb = linea.replace("\r\n", " ")
+            log('Received from ' + ip_client + ':' +
+                port_client + ': ' + linea_recb, LOG_PATH)
+            user = milinea_split[6].split('=')[1]
+            if user in self.dicc_reg.keys():
+                server = milinea_split[1].split(':')[1]
+                if server in self.dicc_reg.keys():
+                    ip_destino = self.dicc_reg[server]['ip']
+                    port_destino = int(self.dicc_reg[server]['puerto'])
+                    self.envio_destino(ip_destino, port_destino, linea)
+                else:
+                    self.user_not_found()
+            else:
+                self.user_not_found()
+        elif milinea_split[0] == 'ACK':
+            linea_recb = linea.replace("\r\n", " ")
+            log('Received from ' + ip_client + ':' +
+                port_client + ': ' + linea_recb, LOG_PATH)
+            server = milinea_split[1].split(':')[1]
+            if server in self.dicc_reg.keys():
+                ip_destino = self.dicc_reg[server]['ip']
+                port_destino = int(self.dicc_reg[server]['puerto'])
+                self.envio_destino(ip_destino, port_destino, linea)
+            else:
+                self.user_not_found()
+        elif milinea_split[0] == 'BYE':
+            linea_recb = linea.replace("\r\n", " ")
+            log('Received from ' + ip_client + ':' +
+                port_client + ': ' + linea_recb, LOG_PATH)
+            server = milinea_split[1].split(':')[1]
+            if server in self.dicc_reg.keys():
+                ip_destino = self.dicc_reg[server]['ip']
+                port_destino = int(self.dicc_reg[server]['puerto'])
+                self.envio_destino(ip_destino, port_destino, linea)
+            else:
+                self.user_not_found()
+        elif milinea_split[0] != ('REGISTER', 'INVITE', 'ACK', 'BYE'):
+            self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
+            log("Error: SIP/2.0 405 Method Not Allowed", LOG_PATH)
+            print('metodo erroneo')
+        else:
+            self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+            log("Error: SIP/2.0 400 Bad Request", LOG_PATH)
+            print('no deberia llegar aqui')
+        self.register2json()
 if __name__ == "__main__":
     try:
         CONFIG = sys.argv[1]

@@ -56,8 +56,8 @@ class HandlerServer(socketserver.DatagramRequestHandler):
         if line[0] == 'INVITE':
             print(line)
             #Guardo la ip y el puerto donde enviare el audio
-            self.rtp.append(line[mirarposicion])
-            self.rtp.append(line[mirarposicion])
+            self.rtp.append(line[10])
+            self.rtp.append(line[13])
             mensaje = ('SIP/2.0 100 Trying\r\n\r\n' +
                        'SIP/2.0 180 Ringing\r\n\r\n' +
                        'SIP/2.0 200 OK\r\n' +

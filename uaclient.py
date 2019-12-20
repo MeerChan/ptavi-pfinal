@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
         RECV_SPLIT = RECV.split()
         if RECV_SPLIT[1] == '401':
-            NONCE_RECV = RECV_SPLIT[mirar proxy].split('"')[mirar proxy]
+            NONCE_RECV = RECV_SPLIT[6].split('"')[1]
             NONCE_RESP = password(PASSWD, NONCE_RECV)
             LINEA = (METHOD + ' sip:' + ADRESS + ':' + PUERTO +
                      ' SIP/2.0\r\n' + 'Expires: ' + OPTION + '\r\n' +
@@ -137,8 +137,8 @@ if __name__ == "__main__":
                 MENS, LOG_PATH)
         elif (RECV_SPLIT[1] == '100' and RECV_SPLIT[4] == '180' and
               RECV_SPLIT[7] == '200'):
-            SERVER_IP = RECV_SPLIT[MIRAR]
-            PORT_RTP = RECV_SPLIT[mirar]
+            SERVER_IP = RECV_SPLIT[16]
+            PORT_RTP = RECV_SPLIT[19]
             LINEA = 'ACK sip:' + OPTION + ' SIP/2.0\r\n\r\n'
             my_socket.send(bytes(LINEA, 'utf-8'))
             print('Enviamos al Proxy:\r\n', LINEA)
