@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+Client_IP#!/usr/bin/python3
 """
 Clase (y programa principal) para un servidor de eco en UDP simple
 """
@@ -52,7 +52,7 @@ class HandlerServer(socketserver.DatagramRequestHandler):
                 str(PORT_PROXY) + ': ' + linea_buena, LOG_PATH)
             print("El cliente nos manda ", milinea)
 
-            line = linea.split()
+            line = milinea.split()
             if line[0] == 'INVITE':
                 print(line)
                 #Guardo la ip y el puerto donde enviare el audio
@@ -65,16 +65,16 @@ class HandlerServer(socketserver.DatagramRequestHandler):
                            'v=0\r\n' + 'o=' + ADRESS + ' ' + IP + '\r\n' +
                            's=misesion\r\n' + 'm=audio ' + str(PORT_AUDIO) +
                            ' RTP' + '\r\n\r\n')
-                self.enviar_proxy(mensaje, ip_client, port_client)
+                self.enviar_proxy(mensaje, Client_IP, Client_PORT)
             elif line[0] == 'ACK':
                 mensaje = rtp(self.rtp[0], self.rtp[1], AUDIO_PATH)
                 log()
             elif line[0] == 'BYE':
                 mensaje = 'SIP/2.0 200 OK\r\n\r\n'
-                self.enviar_proxy(mensaje, ip_client, port_client)
+                self.enviar_proxy(mensaje, Client_IP, Client_PORT)
             elif line[0] != ('INVITE', 'ACK', 'BYE'):
                 mensaje = 'SIP/2.0 405 Method Not Allowed\r\n\r\n'
-                self.enviar_proxy(mensaje, ip_client, port_client)
+                self.enviar_proxy(mensaje, Client_IP, Client_PORT)
                 log("Error: SIP/2.0 405 Method Not Allowed", LOG_PATH)
                 print('El metodo esta mal escrito')
             else:
