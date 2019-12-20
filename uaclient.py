@@ -5,9 +5,13 @@ Programa cliente UDP que abre un socket a un servidor
 
 import socket
 import sys
+import time
+import hashlib
+import os
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
-from uaserver import log rtp
+
+
 
 class UaHandler(ContentHandler):
     """Class Handler."""
@@ -31,6 +35,19 @@ class UaHandler(ContentHandler):
         """Devuelve el diccionario."""
         return self.diccionario
 
+def rtp(ip, port, audio):
+    """Manda Audio RTP."""
+    # aEjecutar es un string con lo que se ha de ejecutar en la shell
+    aejecutar = 'mp32rtp -i ' + ip + ' -p ' + port + ' < ' + audio
+    return aejecutar
+
+def log(mensaje, log_path):
+    """Abre un fichero log para poder escribir en el."""
+    fich = open(log_path, "a")
+    fich.write(time.strftime('%Y%m%d%H%M%S '))
+    fich.write(mensaje+"\r\n")
+    fich.close()
+
 def password(passwd, nonce):
     """Devuelve el nonce de respuesta."""
     m = hashlib.md5()
@@ -40,7 +57,9 @@ def password(passwd, nonce):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
+        sys.exit("Usagsdfsdfsdfsdfs")
         sys.exit("Usage: python uaclient.py config method option")
+        sys.exit("Usagsdfsdfsdfsdfs")
     try:
         CONFIG = sys.argv[1]
         print(CONFIG)
@@ -102,7 +121,7 @@ if __name__ == "__main__":
         print('Enviamos al Proxy:\r\n', LINEA)
         linea_buena = LINEA.replace("\r\n", " ")
         log('Sent to ' + IP_PROXY + ':' + str(PORT_PROXY) + ': ' +
-            lineao_buena, LOG_PATH)
+            linea_buena, LOG_PATH)
 
         try:
             DATA_RECV = my_socket.recv(1024)

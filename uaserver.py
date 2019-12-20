@@ -1,16 +1,13 @@
-Client_IP#!/usr/bin/python3
+#!/usr/bin/python3
 """
 Clase (y programa principal) para un servidor de eco en UDP simple
 """
 
 import socketserver
 import sys
-import time
-import json
-import os
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
-from uaclient import UaHandler
+from uaclient import UaHandler, log, rtp
 
 class HandlerServer(socketserver.DatagramRequestHandler):
     """
@@ -18,20 +15,6 @@ class HandlerServer(socketserver.DatagramRequestHandler):
     """
     #Creo la lista rtp, que constara de una ip y un puerto
     rtp = []
-
-
-    def rtp(ip, port, audio):
-        """Manda Audio RTP."""
-        # aEjecutar es un string con lo que se ha de ejecutar en la shell
-        aejecutar = 'mp32rtp -i ' + ip + ' -p ' + port + ' < ' + audio
-        return aejecutar
-
-    def log(mensaje, log_path):
-        """Abre un fichero log para poder escribir en el."""
-        fich = open(log_path, "a")
-        fich.write(time.strftime('%Y%m%d%H%M%S '))
-        fich.write(mensaje+"\r\n")
-        fich.close()
     #Funcion para enviar mensajes al proxy
     def enviar_proxy(self, linea, ip, port):
         """Envia mensajes al proxy."""
