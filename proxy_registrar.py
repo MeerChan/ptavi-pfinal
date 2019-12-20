@@ -7,8 +7,7 @@ from xml.sax.handler import ContentHandler
 import socket
 import time
 import json
-from uaserver import log
-from uaclient import password
+from uaclient import log, password
 import random
 
 class PrHandler(ContentHandler):
@@ -79,8 +78,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             my_socket.connect((ip, port))
 
             mensaje_split = mensaje.split('\r\n\r\n')
-            mens_proxy = (mensaje_split[luego] + '\r\nVia: SIP/2.0/UDP ' + IP + ':' +
-                          str(PORT_SERVER) + '\r\n\r\n' + mensaje_split[luego])
+            mens_proxy = (mensaje_split[0] + '\r\nVia: SIP/2.0/UDP ' + IP + ':' +
+                          str(PORT_SERVER) + '\r\n\r\n' + mensaje_split[1])
             print('mandamos al servidor: ', mens_proxy)
             my_socket.send(bytes(mens_proxy, 'utf-8'))
             mens_proxy = mens_proxy.replace("\r\n", " ")
@@ -109,6 +108,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 log('Received from ' + ip + ':' +
                     str(port) + ': ' + log_send, LOG_PATH)
                 self.enviar_cliente(ip, port, env_proxy)
+                
     def user_not_found(self):
         """Mensaje de usuario no encontrado."""
         linea_send = 'SIP/2.0 404 User Not Found\r\n\r\n'
@@ -120,13 +120,14 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         """Escribe dirección y puerto del cliente."""
         ip_client = str(self.client_address[0])
         port_client = str(self.client_address[1])
+        self.json2password()
         milinea = ''
         for line in self.rfile:
             milinea += line.decode('utf-8')
-            linea_buena = linea.replace("\r\n", " ")
-            log('Received from ' + IP_PROXY + ':' +
-                str(PORT_PROXY) + ': ' + linea_buena, LOG_PATH)
-            print("El cliente nos manda ", linea)
+            linea_buena = milinea.replace("\r\n", " ")
+            log('Received from ' + ip_client + ':' +
+                port_client + ': ' + linea_buena, LOG_PATH)
+            print("llega ", milinea)
 
             milinea_split = milinea.split()
         if milinea_split[0] == 'REGISTER' and len(milinea_split) == 5:
@@ -158,7 +159,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                                   'WWW Authenticate: Digest ' +
                                   'nonce="' + self.nonce[user] +
                                   '""\r\n\r\n')
-                self.envio_cliente(ip_client, port_client, linea_send)
+                self.enviar_cliente(ip_client, port_client, linea_send)
             else:
                 self.user_not_found()
         elif milinea_split[0] == 'REGISTER' and len(milinea_split) == 8:
@@ -166,7 +167,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             now = time.time()
             user = milinea_split[1].split(':')[1]
             port = milinea_split[1].split(':')[2]
-            linea_recb = linea.replace("\r\n", " ")
+            linea_recb = milinea.replace("\r\n", " ")
             log('Received from ' + ip_client + ':' +
                 port_client + ': ' + linea_recb, LOG_PATH)
             passw = self.dicc_passw[user]['passwd']
@@ -189,9 +190,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                               'WWW Authenticate: Digest ' +
                               'nonce="' + self.nonce[user] +
                               '"\r\n\r\n')
-            self.envio_cliente(ip_client, port_client, linea_send)
+            self.enviar_cliente(ip_client, port_client, linea_send)
         elif milinea_split[0] == 'INVITE':
-            linea_recb = linea.replace("\r\n", " ")
+            linea_recb = milinea.replace("\r\n", " ")
             log('Received from ' + ip_client + ':' +
                 port_client + ': ' + linea_recb, LOG_PATH)
             user = milinea_split[6].split('=')[1]
@@ -200,31 +201,31 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 if server in self.dicc_reg.keys():
                     ip_destino = self.dicc_reg[server]['ip']
                     port_destino = int(self.dicc_reg[server]['puerto'])
-                    self.envio_destino(ip_destino, port_destino, linea)
+                    self.enviar_server(ip_destino, port_destino, milinea)
                 else:
                     self.user_not_found()
             else:
                 self.user_not_found()
         elif milinea_split[0] == 'ACK':
-            linea_recb = linea.replace("\r\n", " ")
+            linea_recb = milinea.replace("\r\n", " ")
             log('Received from ' + ip_client + ':' +
                 port_client + ': ' + linea_recb, LOG_PATH)
             server = milinea_split[1].split(':')[1]
             if server in self.dicc_reg.keys():
                 ip_destino = self.dicc_reg[server]['ip']
                 port_destino = int(self.dicc_reg[server]['puerto'])
-                self.envio_destino(ip_destino, port_destino, linea)
+                self.enviar_server(ip_destino, port_destino, milinea)
             else:
                 self.user_not_found()
         elif milinea_split[0] == 'BYE':
-            linea_recb = linea.replace("\r\n", " ")
+            linea_recb = milinea.replace("\r\n", " ")
             log('Received from ' + ip_client + ':' +
                 port_client + ': ' + linea_recb, LOG_PATH)
             server = milinea_split[1].split(':')[1]
             if server in self.dicc_reg.keys():
                 ip_destino = self.dicc_reg[server]['ip']
                 port_destino = int(self.dicc_reg[server]['puerto'])
-                self.envio_destino(ip_destino, port_destino, linea)
+                self.enviar_server(ip_destino, port_destino, milinea)
             else:
                 self.user_not_found()
         elif milinea_split[0] != ('REGISTER', 'INVITE', 'ACK', 'BYE'):

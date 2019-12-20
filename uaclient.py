@@ -57,9 +57,7 @@ def password(passwd, nonce):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        sys.exit("Usagsdfsdfsdfsdfs")
         sys.exit("Usage: python uaclient.py config method option")
-        sys.exit("Usagsdfsdfsdfsdfs")
     try:
         CONFIG = sys.argv[1]
         print(CONFIG)
@@ -164,8 +162,9 @@ if __name__ == "__main__":
             LINEA = LINEA.replace("\r\n", " ")
             log('Sent to ' + IP_PROXY + ':' + str(PORT_PROXY) + ': ' +
                 LINEA, LOG_PATH)
-            print(SERVER_IP)
             LINEA = rtp(SERVER_IP, PORT_RTP, AUDIO_PATH)
+            os.system(LINEA)
+            print("rtp enviado", PORT_RTP)
             log('Sent to ' + SERVER_IP + ':' + PORT_RTP + ': ' +
                 LINEA, LOG_PATH)
         elif RECV_SPLIT[1] == '404':

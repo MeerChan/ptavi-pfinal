@@ -2,7 +2,7 @@
 <config>
   <account username="MariaDorada@ptavi.es" passwd="galleta"/>
   <uaserver ip="127.0.0.1" puerto="6002"/>
-  <rtpaudio puerto="23033"/>
+  <rtpaudio puerto="32023"/>
   <regproxy ip="127.0.0.1" puerto="1234"/>
   <log path="log_ua2.txt"/>
   <audio path="cancion.mp3"/>

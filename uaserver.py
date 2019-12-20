@@ -8,6 +8,7 @@ import sys
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 from uaclient import UaHandler, log, rtp
+import os
 
 class HandlerServer(socketserver.DatagramRequestHandler):
     """
@@ -33,7 +34,7 @@ class HandlerServer(socketserver.DatagramRequestHandler):
             linea_buena = milinea.replace("\r\n", " ")
             log('Received from ' + IP_PROXY + ':' +
                 str(PORT_PROXY) + ': ' + linea_buena, LOG_PATH)
-            print("El cliente nos manda ", milinea)
+            print("llega ", milinea)
 
             line = milinea.split()
         if line[0] == 'INVITE':
@@ -50,8 +51,12 @@ class HandlerServer(socketserver.DatagramRequestHandler):
                        ' RTP' + '\r\n\r\n')
             self.enviar_proxy(mensaje, Client_IP, Client_PORT)
         elif line[0] == 'ACK':
+            print(self.rtp[0])
+            print(self.rtp[1])
             mensaje = rtp(self.rtp[0], self.rtp[1], AUDIO_PATH)
-            log()
+            os.system(mensaje)
+            log('Sent to ' + self.rtp[0] + ':' + str(self.rtp[1]) + ': ' +
+                    mensaje, LOG_PATH)
         elif line[0] == 'BYE':
             mensaje = 'SIP/2.0 200 OK\r\n\r\n'
             self.enviar_proxy(mensaje, Client_IP, Client_PORT)
@@ -97,7 +102,7 @@ if __name__ == "__main__":
     PORT_AUDIO = int(CONFIGURACION['rtpaudio_puerto'])
     AUDIO_PATH = CONFIGURACION['audio_path']
 
-    serv = socketserver.UDPServer((IP, PUERTO), EchoHandler)
+    serv = socketserver.UDPServer((IP, PUERTO), HandlerServer)
     print('Listening...')
     log("Starting...", LOG_PATH)
     try:
