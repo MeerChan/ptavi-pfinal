@@ -1,7 +1,6 @@
 #!/usr/bin/python3
-"""
-Programa cliente UDP que abre un socket a un servidor
-"""
+"""Programa cliente UDP que abre un socket a un servidor."""
+
 
 import socket
 import sys
@@ -12,7 +11,6 @@ from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 
 
-
 class UaHandler(ContentHandler):
     """Class Handler."""
 
@@ -20,10 +18,10 @@ class UaHandler(ContentHandler):
         """Inicializa los diccionarios."""
         self.diccionario = {}
         self.dicc_uaxml = {'account': ['username', 'passwd'],
-                            'uaserver': ['ip', 'puerto'],
-                            'rtpaudio': ['puerto'],
-                            'regproxy': ['ip', 'puerto'],
-                            'log': ['path'], 'audio': ['path']}
+                           'uaserver': ['ip', 'puerto'],
+                           'rtpaudio': ['puerto'],
+                           'regproxy': ['ip', 'puerto'],
+                           'log': ['path'], 'audio': ['path']}
 
     def startElement(self, name, attrs):
         """Crea el diccionario con los valores del fichero xml."""
@@ -35,11 +33,13 @@ class UaHandler(ContentHandler):
         """Devuelve el diccionario."""
         return self.diccionario
 
+
 def rtp(ip, port, audio):
     """Manda Audio RTP."""
     # aEjecutar es un string con lo que se ha de ejecutar en la shell
     aejecutar = 'mp32rtp -i ' + ip + ' -p ' + port + ' < ' + audio
     return aejecutar
+
 
 def log(mensaje, log_path):
     """Abre un fichero log para poder escribir en el."""
@@ -48,6 +48,7 @@ def log(mensaje, log_path):
     fich.write(mensaje+"\r\n")
     fich.close()
 
+
 def password(passwd, nonce):
     """Devuelve el nonce de respuesta."""
     m = hashlib.md5()
@@ -55,12 +56,12 @@ def password(passwd, nonce):
     m.update(bytes(nonce, 'utf-8'))
     return m.hexdigest()
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         sys.exit("Usage: python uaclient.py config method option")
     try:
         CONFIG = sys.argv[1]
-        print(CONFIG)
         METHOD = sys.argv[2].upper()
         if METHOD != 'INVITE' and METHOD != 'BYE' and METHOD != 'REGISTER':
             sys.exit("Method must be REGISTER, INVITE or BYE")
@@ -100,8 +101,6 @@ if __name__ == "__main__":
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         my_socket.connect((IP_PROXY, PORT_PROXY))
-        print("funciona")
-
         if METHOD == 'REGISTER':
             LINEA = (METHOD + ' sip:' + ADRESS + ':' + PUERTO +
                      ' SIP/2.0\r\n' + 'Expires: ' + OPTION + '\r\n\r\n')
@@ -164,7 +163,7 @@ if __name__ == "__main__":
                 LINEA, LOG_PATH)
             LINEA = rtp(SERVER_IP, PORT_RTP, AUDIO_PATH)
             os.system(LINEA)
-            print("rtp enviado", PORT_RTP)
+            print("rtp enviado a", PORT_RTP)
             log('Sent to ' + SERVER_IP + ':' + PORT_RTP + ': ' +
                 LINEA, LOG_PATH)
         elif RECV_SPLIT[1] == '404':

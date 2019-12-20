@@ -1,5 +1,5 @@
-#!/usr/bin/python3
-
+# !/usr/bin/python3
+"""Programa de un servidor-proxy."""
 import socketserver
 import sys
 from xml.sax import make_parser
@@ -10,15 +10,16 @@ import json
 from uaclient import log, password
 import random
 
+
 class PrHandler(ContentHandler):
     """Class Handler."""
 
     def __init__(self):
-        """Inicializo los diccionarios"""
+        """Inicializo los diccionarios."""
         self.diccionario = {}
         self.dicc_prxml = {'server': ['name', 'ip', 'puerto'],
-                            'database': ['path', 'passwdpath'],
-                            'log': ['path']}
+                           'database': ['path', 'passwdpath'],
+                           'log': ['path']}
 
     def startElement(self, name, attrs):
         """Crea el diccionario con los valores del fichero xml."""
@@ -33,20 +34,11 @@ class PrHandler(ContentHandler):
 
 
 class SIPRegisterHandler(socketserver.DatagramRequestHandler):
-    """
-    Echo server class
-    """
+    """Echo server class."""
+
     dicc_reg = {}
     dicc_passw = {}
     nonce = {}
-
-    def json2register(self):
-        """Paso el json a mi diccionario REGISTER"""
-        try:
-            with open(REGISTERS, 'r') as jsonfile:
-                self.dicc_reg = json.load(jsonfile)
-        except FileNotFoundError:
-            pass
 
     def json2password(self):
         """Descargo fichero json en el diccionario."""
@@ -57,10 +49,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             pass
 
     def register2json(self):
-        """
-        Escribir diccionario.
-        En formato json en el fichero que nos dice el xml
-        """
+        """Escribir dicc en formato json en el fichero que nos dice el xml."""
         with open(REGISTERS, 'w') as jsonfile:
             json.dump(self.dicc_reg, jsonfile, indent=4)
 
@@ -76,10 +65,10 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
             my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             my_socket.connect((ip, port))
-
             mensaje_split = mensaje.split('\r\n\r\n')
-            mens_proxy = (mensaje_split[0] + '\r\nVia: SIP/2.0/UDP ' + IP + ':' +
-                          str(PORT_SERVER) + '\r\n\r\n' + mensaje_split[1])
+            mens_proxy = (mensaje_split[0] + '\r\nVia: SIP/2.0/UDP ' +
+                          IP + ':' + str(PORT_SERVER) + '\r\n\r\n' +
+                          mensaje_split[1])
             print('mandamos al servidor: ', mens_proxy)
             my_socket.send(bytes(mens_proxy, 'utf-8'))
             mens_proxy = mens_proxy.replace("\r\n", " ")
@@ -108,7 +97,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
                 log('Received from ' + ip + ':' +
                     str(port) + ': ' + log_send, LOG_PATH)
                 self.enviar_cliente(ip, port, env_proxy)
-                
+
     def user_not_found(self):
         """Mensaje de usuario no encontrado."""
         linea_send = 'SIP/2.0 404 User Not Found\r\n\r\n'
@@ -127,11 +116,9 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             linea_buena = milinea.replace("\r\n", " ")
             log('Received from ' + ip_client + ':' +
                 port_client + ': ' + linea_buena, LOG_PATH)
-            print("llega ", milinea)
-
             milinea_split = milinea.split()
         if milinea_split[0] == 'REGISTER' and len(milinea_split) == 5:
-            #Si la longuitud es 5, primer register
+            # Si la longuitud es 5, primer register
             TimeExp = time.time() + int(milinea_split[4])
             now = time.time()
             user = milinea_split[1].split(':')[1]
@@ -142,18 +129,18 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             if user in self.dicc_passw.keys():
                 if user in self.dicc_reg.keys():
                     if milinea_split[4] == '0':
-                        #si el expires es 0 lo borro
+                        # si el expires es 0 lo borro
                         del self.dicc_reg[user]
                         linea_send = "SIP/2.0 200 OK\r\n\r\n"
                     else:
-                        #es raro que llegue aqui
+                        # es raro que llegue aqui
                         self.dicc_reg[user] = {'ip': ip_client,
                                                'expires': TimeExp,
                                                'puerto': port,
                                                'registro': now}
                         linea_send = "SIP/2.0 200 OK\r\n\r\n"
                 else:
-                    #como es el primer register, le mando el nonce
+                    # como es el primer register, le mando el nonce
                     self.nonce[user] = str(random.randint(0, 100000000))
                     linea_send = ('SIP/2.0 401 Unauthorized\r\n' +
                                   'WWW Authenticate: Digest ' +
@@ -173,7 +160,7 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             passw = self.dicc_passw[user]['passwd']
             nonce = password(passw, self.nonce[user])
             nonce_recv = milinea_split[7].split('"')[1]
-            #si el nonce es bueno lo regisstro
+            # si el nonce es bueno lo regisstro
             if nonce == nonce_recv:
                 if milinea_split[4] == '0':
                     del self.dicc_reg[user]
@@ -237,6 +224,8 @@ class SIPRegisterHandler(socketserver.DatagramRequestHandler):
             log("Error: SIP/2.0 400 Bad Request", LOG_PATH)
             print('no deberia llegar aqui')
         self.register2json()
+
+
 if __name__ == "__main__":
     try:
         CONFIG = sys.argv[1]

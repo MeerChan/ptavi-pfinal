@@ -1,7 +1,5 @@
 #!/usr/bin/python3
-"""
-Clase (y programa principal) para un servidor de eco en UDP simple
-"""
+"""Clase (y programa principal) para un servidor de eco en UDP simple."""
 
 import socketserver
 import sys
@@ -10,13 +8,14 @@ from xml.sax.handler import ContentHandler
 from uaclient import UaHandler, log, rtp
 import os
 
+
 class HandlerServer(socketserver.DatagramRequestHandler):
-    """
-    Echo server class
-    """
-    #Creo la lista rtp, que constara de una ip y un puerto
+    """Echo server class."""
+
+    # Creo la lista rtp, que constara de una ip y un puerto
     rtp = []
-    #Funcion para enviar mensajes al proxy
+    # Funcion para enviar mensajes al proxy
+
     def enviar_proxy(self, linea, ip, port):
         """Envia mensajes al proxy."""
         self.wfile.write(bytes(linea, 'utf-8'))
@@ -25,6 +24,7 @@ class HandlerServer(socketserver.DatagramRequestHandler):
         log('Sent to ' + ip + ':' + port + ': ' + linea, LOG_PATH)
 
     def handle(self):
+        """Handler."""
         Client_IP = str(self.client_address[0])
         Client_PORT = str(self.client_address[1])
 
@@ -34,12 +34,9 @@ class HandlerServer(socketserver.DatagramRequestHandler):
             linea_buena = milinea.replace("\r\n", " ")
             log('Received from ' + IP_PROXY + ':' +
                 str(PORT_PROXY) + ': ' + linea_buena, LOG_PATH)
-            print("llega ", milinea)
-
             line = milinea.split()
         if line[0] == 'INVITE':
-            print(line)
-            #Guardo la ip y el puerto donde enviare el audio
+            # Guardo la ip y el puerto donde enviare el audio
             self.rtp.append(line[10])
             self.rtp.append(line[13])
             mensaje = ('SIP/2.0 100 Trying\r\n\r\n' +
@@ -51,12 +48,10 @@ class HandlerServer(socketserver.DatagramRequestHandler):
                        ' RTP' + '\r\n\r\n')
             self.enviar_proxy(mensaje, Client_IP, Client_PORT)
         elif line[0] == 'ACK':
-            print(self.rtp[0])
-            print(self.rtp[1])
             mensaje = rtp(self.rtp[0], self.rtp[1], AUDIO_PATH)
             os.system(mensaje)
             log('Sent to ' + self.rtp[0] + ':' + str(self.rtp[1]) + ': ' +
-                    mensaje, LOG_PATH)
+                mensaje, LOG_PATH)
         elif line[0] == 'BYE':
             mensaje = 'SIP/2.0 200 OK\r\n\r\n'
             self.enviar_proxy(mensaje, Client_IP, Client_PORT)
@@ -70,6 +65,7 @@ class HandlerServer(socketserver.DatagramRequestHandler):
             self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
             log("Error: SIP/2.0 400 Bad Request", LOG_PATH)
             print('No deberia llegar aqui, saltaria el error anterior ')
+
 
 if __name__ == "__main__":
     try:
