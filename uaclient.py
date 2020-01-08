@@ -9,6 +9,7 @@ import hashlib
 import os
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
+import threading
 
 
 class UaHandler(ContentHandler):
@@ -41,7 +42,9 @@ def rtp(ip, port, audio):
     # hay que añadir & para que funcione
     cvlc = 'cvlc rtp://' + ip + '@' + ip + ':' + port + '&'
     print(cvlc)
-    return cvlc + aejecutar
+    hcvlc = threading.Thread(target=os.system(cvlc))
+    hcvlc.start()
+    return aejecutar
 
 
 def log(mensaje, log_path):
