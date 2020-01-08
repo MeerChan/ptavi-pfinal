@@ -38,7 +38,10 @@ def rtp(ip, port, audio):
     """Manda Audio RTP."""
     # aEjecutar es un string con lo que se ha de ejecutar en la shell
     aejecutar = 'mp32rtp -i ' + ip + ' -p ' + port + ' < ' + audio
-    return aejecutar
+    # hay que añadir & para que funcione
+    cvlc = 'cvlc rtp://' + ip + '@' + ip + ':' + port + '&'
+    print(cvlc)
+    return cvlc + aejecutar
 
 
 def log(mensaje, log_path):
