@@ -10,6 +10,7 @@ import os
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 import threading
+import simplertp
 
 
 class UaHandler(ContentHandler):
@@ -35,15 +36,26 @@ class UaHandler(ContentHandler):
         return self.diccionario
 
 
-def rtp(ip, port, audio):
+def rtp(ip, port, audiomalo):
     """Manda Audio RTP."""
+
     # aEjecutar es un string con lo que se ha de ejecutar en la shell
-    aejecutar = 'mp32rtp -i ' + ip + ' -p ' + port + ' < ' + audio
+    aejecutar = 'mp32rtp -i ' + ip + ' -p ' + port + ' < ' + audiomalo
     # hay que añadir & para que funcione
     cvlc = 'cvlc rtp://' + ip + '@' + ip + ':' + port + '&'
     print(cvlc)
     hcvlc = threading.Thread(target=os.system(cvlc))
     hcvlc.start()
+
+    cabeceraRTP = simplertp.RtpHeader()
+    csrc = [2000, 3000, 4000, 5000]
+    cabeceraRTP.set_header(version=2, pad_flag=0, ext_flag=0, cc=4, marker=0, payload_type=90, ssrc=1000)
+    cabeceraRTP.setCSRC(csrc)
+    audio = simplertp.RtpPayloadMp3()
+    audio.set_audio(audiomalo)
+    numeroPaquetesRTP = 0
+    paquetesMP3porRTP = 2
+    simplertp.send_rtp_packet(numeroPaquetesRTP, cabeceraRTP, audio, ip, int(port), paquetesMP3porRTP)
     return aejecutar
 
 

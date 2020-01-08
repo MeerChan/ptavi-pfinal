@@ -1,0 +1,5 @@
+cabecera proxy "Via: SIP/2.0/UDP ' + IP + ':' + str(PORT_SERVER)"
+hilos para vlc import threading
+enviar rtp sin mp32rtp funciona con la cancion del ejemplo de simplyrtp,
+con nuestra cancion no funciona (creo que por el bit rate (320)). He cambiado
+la cancion.mp3 original por la del ejemplo de symplyrtp para que funcione todo.
